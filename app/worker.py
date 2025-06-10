@@ -5,6 +5,7 @@ import logging
 from time import sleep
 from sender_email import send_email_teste
 from contextlib import contextmanager
+from tools import new_military_registration_full
 
 # Configuração do logging
 logging.basicConfig(
@@ -41,13 +42,11 @@ def processing_lock(number: str):
 
 def cadastrar_militar(number: str, email: str) -> bool:
     """
-    Simula o cadastro de um militar.
+    Realiza o cadastro do Militar
     """
     try:
-        sleep(10)  # Simula o tempo de cadastro
-        logging.info(f"Militar {number} cadastrado com sucesso.")
-        logging.info(f"Confirmação encaminhada para o email: {email}")
-        return True
+        resultado_fim = new_military_registration_full(number)
+        return resultado_fim
     except Exception as e:
         logging.error(f"Erro ao cadastrar militar {number}: {e}")
         return False
@@ -60,8 +59,8 @@ def send_email_with_retry(message_body: str, email_to: str, retries: int = 3) ->
     while attempt < retries:
         try:
             status = send_email_teste(message_body, email_to)
-            if "Erro" not in status:
-                return status
+            if status:
+                return "Sucesso no envio do email !!"
             logging.warning(f"Tentativa {attempt + 1} de envio falhou para {email_to}: {status}")
         except Exception as e:
             logging.error(f"Erro na tentativa {attempt + 1} de envio para {email_to}: {e}")

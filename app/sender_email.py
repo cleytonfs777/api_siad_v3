@@ -82,7 +82,7 @@ def send_email_full(email, type="success"):
 
 
 def send_email_teste(msg_body, e_to):
-    return ["True", "True"]
+    return True
 
 if __name__ == '__main__':
     service = gmail_authenticate()
