@@ -40,7 +40,7 @@ def processing_lock(number: str):
             logging.error(f"Erro ao remover chave de processamento para {number}: {e}")
 
 
-def cadastrar_militar(number: str, email: str) -> bool:
+def cadastrar_militar(number: str) -> bool:
     """
     Realiza o cadastro do Militar
     """
@@ -58,7 +58,7 @@ def send_email_with_retry(message_body: str, email_to: str, retries: int = 3) ->
     attempt = 0
     while attempt < retries:
         try:
-            status = send_email_teste(message_body, email_to)
+            status = send_email(message_body, email_to)
             if status:
                 return "Sucesso no envio do email !!"
             logging.warning(f"Tentativa {attempt + 1} de envio falhou para {email_to}: {status}")
@@ -78,7 +78,7 @@ def process_request(request_data: dict):
 
     with processing_lock(number):
         # ✅ Cadastrar o militar
-        resultado = cadastrar_militar(number, email_to)
+        resultado = cadastrar_militar(number)
 
         if resultado:
             message_body = """

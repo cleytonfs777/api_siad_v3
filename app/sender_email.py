@@ -1,67 +1,32 @@
 import os
-import base64
+import smtplib
 from email.message import EmailMessage
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-TOKEN_FILE = 'token.json'
-CREDENTIALS_FILE = 'credentials.json'
+def send_email(message_body, email_to, assunto='Sua solicitação de Recuperação foi processada!!'):
+    email = os.getenv("EMAILAPP")
+    password = os.getenv("SENHAAPP")
 
-def gmail_authenticate():
-    creds = None
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        print("Token carregado com sucesso.")
-    else:
-        print("Nenhum token encontrado, iniciando autenticação...")
-
-    try:
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                print("Token expirado, renovando automaticamente...")
-                creds.refresh(Request())
-            else:
-                print("Iniciando novo fluxo de autenticação...")
-                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)
-
-            # Salva o token atualizado ou novo
-            with open(TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
-                print("Token salvo com sucesso.")
-    except Exception as e:
-        print(f"Erro na autenticação: {e}")
-        raise e
-
-    return build('gmail', 'v1', credentials=creds)
-
-def send_email(service, to, subject, body):
-    message = EmailMessage()
-    message.set_content(body)
-    message['To'] = to
-    message['From'] = os.getenv("EMAILAPP")
-    message['Subject'] = subject
-
-    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
-    create_message = {
-        'raw': encoded_message
-    }
+    msg = EmailMessage()
+    msg['Subject'] = assunto
+    msg['From'] = email
+    msg['To'] = email_to
+    msg.set_content("Seu e-mail não suporta HTML. Por favor, habilite a exibição de conteúdo HTML.")  # Backup para clientes sem HTML
+    msg.add_alternative(message_body, subtype="html")  # ✅ Agora o e-mail suporta HTML
 
     try:
-        send_message = service.users().messages().send(userId="me", body=create_message).execute()
-        print(f"Email enviado! ID da mensagem: {send_message['id']}")
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(email, password)
+            smtp.send_message(msg)
+            return True
     except Exception as e:
         print(f"Erro ao enviar email: {e}")
-        
+        return False
+
 def send_email_full(email, type="success"):
-    service = gmail_authenticate()
+    
     msg_success = """
         <html>
         <body>
@@ -78,16 +43,15 @@ def send_email_full(email, type="success"):
         </body>
         </html>
         """
-    send_email()
+    if type == 'success':
+        send_email(msg_success, email)
+    else:
+        send_email(msg_error, email)
 
 
 def send_email_teste(msg_body, e_to):
     return True
 
 if __name__ == '__main__':
-    service = gmail_authenticate()
-    email_to = input('Digite o email do destinatário: ')
-    subject = input('Digite o assunto: ')
-    message_body = input('Digite a mensagem: ')
-
-    send_email(service, email_to, subject, message_body)
+    # send_email_full("cleyton.fs777@gmail.com")
+    send_email("Teste de Body para a aplicação", "cleytoncbmmg@gmail.com", "Novo assunto para realização de teste")
