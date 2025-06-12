@@ -3,7 +3,7 @@ import redis
 import json
 import logging
 from time import sleep
-from sender_email import send_email_teste
+from sender_email import send_email
 from contextlib import contextmanager
 from tools import new_military_registration_full
 

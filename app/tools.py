@@ -13,6 +13,7 @@ from sender_email import send_email
 import pexpect
 import socket
 import re
+import logging
 
 
 load_dotenv()  # take environment variables from .env.
@@ -51,10 +52,10 @@ def liberar_porta(porta):
         for pid in pids:
             if pid.strip().isdigit():
                 subprocess.run(["kill", "-9", pid.strip()])
-                print(f"✔ Processo {pid} finalizado na porta {porta}")
+                logging.info(f"✔ Processo {pid} finalizado na porta {porta}")
 
     except Exception as e:
-        print(f"Erro ao liberar porta {porta}: {e}")
+        logging.info(f"Erro ao liberar porta {porta}: {e}")
 
 def iniciar_c3270(host='192.168.2.1', porta=5000):
     liberar_porta(porta)  # 🔪 Libera a porta antes de iniciar
@@ -219,7 +220,7 @@ def inicia_sistema():
 
 
             elif "Logon executado com sucesso" in mensagem1:
-                print("'Logon executado com sucesso'...foi encontrado na frase selecionada")
+                logging.info("'Logon executado com sucesso'...foi encontrado na frase selecionada")
                 sleep(intervalo_teclas / 1000)
                 escrever(sistema)
                 sleep(intervalo_teclas / 1000)
@@ -233,7 +234,7 @@ def inicia_sistema():
     terminal = iniciar_c3270()
     sleep(1)  # Aguardar para garantir que o programa esteja aberto
     digitar_dados(senha)
-    print("Finalizada a etapa de iniciar o sistema...")
+    logging.info("Finalizada a etapa de iniciar o sistema...")
     return terminal  # ✅ Retorna o terminal vivo
 
 def kill_processes_by_name(keyword):
@@ -242,7 +243,7 @@ def kill_processes_by_name(keyword):
             process_name = process.info['name']
             process_pid = process.info['pid']
             if keyword.lower() in process_name.lower():
-                print(f"Encerrando processo: {process_name} (PID: {process_pid})")
+                logging.info(f"Encerrando processo: {process_name} (PID: {process_pid})")
                 psutil.Process(process_pid).terminate()  # Encerra o processo
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
@@ -263,7 +264,7 @@ def initialize_main():
 
     terminal = inicia_sistema()
     if not terminal:
-        print("Falha ao iniciar terminal.")
+        logging.info("Falha ao iniciar terminal.")
         return False
 
     sleep(1)
@@ -296,7 +297,7 @@ def initialize_main():
     return terminal
 
 def set_user(user_target):
-    print("Iniciando o set de usuario...")
+    logging.info("Iniciando o set de usuario...")
     send_key_press(user_target)
     sleep(0.5)
     tecla("Enter")
@@ -311,9 +312,9 @@ def set_user(user_target):
 
 def new_military_registration_full(nummaster):
     
-    print(f"Iniciando o reset de senha para o nº: {nummaster}")
+    logging.info(f"Iniciando o reset de senha para o nº: {nummaster}")
     if not nummaster.isdigit():
-        print("Não tem número válido...")
+        logging.info("Não tem número válido...")
         return
 
     numero = get_api_key(nummaster)
@@ -322,8 +323,8 @@ def new_military_registration_full(nummaster):
         return
 
     resultfinal = set_user(numero)
-    print(f"Numero do usuario {numero}...")
-    print(resultfinal["message"])
+    logging.info(f"Numero do usuario {numero}...")
+    logging.info(resultfinal["message"])
 
     # Fecha o sistema para evitar erros
     kill_processes_by_name("w3270")
@@ -337,6 +338,6 @@ if __name__ == "__main__":
     response_mail = new_military_registration_full('1526607')
     # sleep(1)
     # response_mail = new_military_registration_full('0020123')
-    # print("O resultado final é:")
-    # print(response_mail)
+    # logging.info("O resultado final é:")
+    # logging.info(response_mail)
     # initialize_main()

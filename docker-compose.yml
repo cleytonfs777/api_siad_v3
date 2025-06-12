@@ -14,23 +14,24 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       retries: 5
-
   app:
-    build: ./app
+    build:
+      context: ./app
+      args:
+        http_proxy: http://proxymg.prodemge.gov.br:8080
+        https_proxy: http://proxymg.prodemge.gov.br:8080
     container_name: fastapi_app
     restart: always
-    depends_on:
-      redis:
-        condition: service_healthy  # ✅ Aguarda o Redis estar pronto
     ports:
       - "8000:8000"
     env_file:
-      - .env  # ✅ Carregar as variáveis do .env
+      - .env
     environment:
-      - REDIS_HOST=redis  # ✅ Define o host do Redis
+      - REDIS_HOST=redis
+      - http_proxy=http://proxymg.prodemge.gov.br:8080
+      - https_proxy=http://proxymg.prodemge.gov.br:8080
     networks:
       - app_network
-
   nginx:
     image: nginx:latest
     container_name: nginx_proxy

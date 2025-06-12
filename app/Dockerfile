@@ -1,15 +1,22 @@
 # Usa Python como base
-FROM python:3.10.17-alpine3.21
+FROM python:3.10-slim
 
-# Adiciona as dependências do sistema
-RUN apk update && apk add --no-cache \
-    build-base \
-    gcc \
-    musl-dev \
+# Define os argumentos para o proxy
+ARG http_proxy
+ARG https_proxy
+
+# Aplica como variáveis de ambiente dentro do container
+ENV http_proxy=${http_proxy}
+ENV https_proxy=${https_proxy}
+
+# Instala pacotes do sistema
+RUN apt-get update && apt-get install -y \
+    build-essential \
     libffi-dev \
-    openssl-dev
+    libssl-dev \
+    gcc
 
-# Define diretório de trabalho
+# Define o diretório da aplicação
 WORKDIR /app
 
 # Copia os arquivos
@@ -21,5 +28,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Expõe a porta
 EXPOSE 8000
 
-# Comando para rodar a API
+# Comando de inicialização
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

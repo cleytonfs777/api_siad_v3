@@ -1,0 +1,1 @@
+nohup /home/ad1429240/api_siad_v3/venv/bin/python worker.py > /home/ad1429240/api_siad_v3/worker.error.log 2> /home/ad1429240/api_siad_v3/worker.log &
