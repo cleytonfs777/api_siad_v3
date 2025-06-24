@@ -7,6 +7,7 @@ from sender_email import send_email
 from contextlib import contextmanager
 from tools import new_military_registration_full
 
+
 # Configuração do logging
 logging.basicConfig(
     level=logging.INFO,

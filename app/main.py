@@ -1,27 +1,53 @@
-import sys
 import os
 import redis
 import json
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# ✅ Carregar variáveis do arquivo .env
+# ✅ Carregar variáveis do .env
 load_dotenv()
 
-# ✅ Inicializar FastAPI
-app = FastAPI()
+# ✅ Inicializar FastAPI sem docs/redoc
+app = FastAPI(
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None
+)
+
+# ✅ Permitir somente a origem da intranet para CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://intranet.bombeiros.mg.gov.br"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+# ✅ Middleware para bloquear ferramentas como curl, Postman etc.
+@app.middleware("http")
+async def block_non_browser_clients(request: Request, call_next):
+    user_agent = request.headers.get("user-agent", "").lower()
+    bloqueados = ["curl", "httpie", "wget", "postman", "python", "java", "go-http-client"]
+    
+    if any(b in user_agent for b in bloqueados):
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Acesso bloqueado: apenas navegadores são permitidos."}
+        )
+
+    return await call_next(request)
 
 # ✅ Conectar ao Redis
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
 
-# ✅ Obtém o SECRET_CODE do .env
+# ✅ Configurações
 SECRET_CODE = os.getenv("SECRET_CODE")
+EXPIRATION_TIME = 45  # segundos
 
-# ✅ Tempo de expiração da chave para evitar cliques repetidos (ex: 45 segundos)
-EXPIRATION_TIME = 45  
-
-# ✅ Modelo de requisição recebida
+# ✅ Schema da requisição
 class RequestSchema(BaseModel):
     number: str
     email: str
@@ -30,30 +56,21 @@ class RequestSchema(BaseModel):
 def health_check():
     return {"status": "ok"}
 
-
 @app.post("/request/")
-def create_request(
-    request_data: RequestSchema, 
-    secret_code: str = Header(None)
-):
-    """
-    Processa a solicitação de reset, verificando se já existe na fila.
-    Se já estiver na fila, retorna uma mensagem apropriada.
-    Se for uma nova requisição, adiciona à fila e retorna sucesso.
-    """
-
+def create_request(request_data: RequestSchema, secret_code: str = Header(None)):
     if secret_code != SECRET_CODE:
-        raise HTTPException(status_code=403, detail=f"Acesso negado. SECRET_CODE inválido. Esse é o enviado: {secret_code} e esse é o do sistema: {SECRET_CODE}")
+        raise HTTPException(status_code=403, detail="Acesso negado. SECRET_CODE inválido.")
 
-    # ✅ Verificar se o número já está sendo processado
     if redis_client.exists(f"processing:{request_data.number}"):
         return {"message": "Pedido de reset já registrado. Aguarde a liberação..."}
 
-    # ✅ Criar um bloqueio temporário no Redis para evitar múltiplos cliques
     redis_client.setex(f"processing:{request_data.number}", EXPIRATION_TIME, "processing")
 
-    # ✅ Se não estiver na fila, adiciona à fila no Redis
-    request_id = f"req:{request_data.number}"  # Criar ID único baseado no número
-    redis_client.lpush("queue", json.dumps({"id": request_id, "number": request_data.number, "email": request_data.email}))
+    request_id = f"req:{request_data.number}"
+    redis_client.lpush("queue", json.dumps({
+        "id": request_id,
+        "number": request_data.number,
+        "email": request_data.email
+    }))
 
     return {"message": "Pedido de reset enviado e confirmado com sucesso. Enviaremos um email de confirmação."}
