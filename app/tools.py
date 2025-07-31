@@ -8,6 +8,7 @@ import subprocess
 from time import sleep
 from dotenv import load_dotenv
 import psutil
+import random
 from sender_email import send_email
 # Adicionando Importação de Recursos para Implementar na Tela
 import pexpect
